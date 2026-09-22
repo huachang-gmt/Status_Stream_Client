@@ -239,6 +239,53 @@ D:\RaspberryPi\Status_Stream_Client\build>.\Release\Packet_Assembly_Test.exe
 139 Byte
 ```
 
+## 3.2 Sequence Number
+
+Header Byte 4～7 為 Sequence Number。
+
+格式：
+
+UINT32 Little-Endian
+
+目前 STM32 Server 由 Sequence 0 開始遞增：
+
+0 → 1 → 2 → 3 → ...
+
+Sequence Number 用於識別 Status Stream 中的封包順序。
+
+Sequence 不負責取代 CRC，也不負責判定封包內容是否合法。
+
+封包是否合法仍由：
+
+- Magic
+- Version
+- Type
+- Payload Length
+- Payload Format
+- CRC
+
+共同決定。
+
+Sequence 主要用於後續 Status Stream 的連續性監控。
+
+例如：
+
+Sequence 100
+Sequence 101
+Sequence 102
+Sequence 104
+
+表示在 102 與 104 之間可能存在 Sequence 103 的封包缺失。
+
+即使 Sequence 發生跳號，只要該封包本身通過完整封包驗證，仍可正常解析並提供 StatusData。
+
+未來可進一步加入：
+
+- Sequence Continuity Check
+- Sequence Gap Detection
+- Duplicate Detection
+- Reconnect 後 Sequence 狀態重新初始化
+
 ---
 
 # 4. Payload 格式
@@ -905,3 +952,47 @@ TCP + Packet + CRC + HEX Decode + StatusData
 任何後續修改應避免破壞本版本已通過的測試。
 
 ---
+# [2026-09-22] 更新版本 修改 main.cpp 在 CLI 介面呈現 每 1000ms 變動一次的 畫面，如下
+```
+============================================================
+ GMT Status Stream Client
+============================================================
+
+ Connection
+   Server                    : 192.168.137.10:8888
+   Status                    : CONNECTED
+
+ Packet
+   Current Sequence          : 683
+   Packet Loss               : 0
+   Latest Missing Sequence   : N/A
+
+ Controller
+   CONNECT                   : ON
+   VOLTAGEON                 : ON
+   ISMOVING                  : ON
+   ISFA                      : OFF
+   HOMINGEND                 : ON
+   ERROR                     : OFF
+
+ Analog Input
+   AI00                      : 5.000 V
+   AI01                      : RAW 0
+   AI02                      : RAW 26214
+   AI03                      : RAW 32768
+   AI04                      : 6.000 V
+   AI05                      : 7.000 V
+   AI06                      : 8.000 V
+   AI07                      : 9.000 V
+
+ Position
+   X                         : 30.000
+   Y                         : 15.000
+   Z                         : 10.000
+   RX                        : 3.000
+   RY                        : 6.000
+   RZ                        : 9.000
+
+============================================================
+```
+### 以上數據變動來自 STM32H755 模擬數去檔案 ： CM4\Core\Inc\status_sample.h
